@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
-os.chdir('C://Users//u301901//.spyder-py3')
+os.chdir('C://Users//u301901//Documents//GitHub//SfarimPy//')
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 import re
 import json
+from PyPDF2 import PdfReader
 
 global sfarim; sfarim = {}
 
@@ -77,20 +78,61 @@ for link in helekLinks:
             sfarim[sefer]['א'] = {}
             fetchContent(sefer)
             
+      
             
-    
-    
+# =========================== nikud ================================================== #      
+
+def remove_niqqud_from_string(my_string):
+    return ''.join(['' if  1456 <= ord(c) <= 1479 else c for c in my_string])
+
+sfarimT = {}
 
 
 
+# =========================== PDF ================================================== #
+# TODO Diffrentiate Yidish & Hebrew
 
 
+reader = PdfReader('igeret17.pdf')
+print(len(reader.pages))
+page = reader.pages[15]
+text = page.extract_text()
+print(text)
+
+import fitz
+
+def scrape(filePath):
+    textFonts = ['David-Bold', 'David-Reg']
+    titleFonts = ['TimesNewRomanPS-BoldMT']
+    results = [] # list of tuples that store the information as (text, font size, font name) 
+    pdf = fitz.open(filePath) # filePath is a string that contains the path to the pdf
+    for page in pdf:
+        dic = page.get_text("dict")
+        blocks = dic["blocks"]
+        for block in blocks:
+            if "lines" in block.keys():
+                spans = block['lines']
+                for span in spans:
+                    data = span['spans']
+                    for lines in data:
+                        # if keyword in lines['text'].lower(): # only store font information of a specific keyword
+                        # if lines['font'] not in textFonts:
+                        #     results.append((lines['text'][::-1], lines['size'], lines['font']))
+                        if lines['font'] in titleFonts and lines['size']>7:
+                            results.append((lines['text'][::-1], lines['size'], lines['font']))
+                            # lines['text'] -> string, lines['size'] -> font size, lines['font'] -> font name
+    pdf.close()
+    return results
 
 
+results= scrape('igeret17.pdf')
 
-
-
-
+# =============================================================================
+# for block in list(pdf.pages())[32].get_text("dict")['blocks']:
+#     if "lines" in block.keys():
+#         print(block['lines'][0]['spans'][0]['text'])
+# 
+# =============================================================================
 
 
 # =========================== parshiot ==================================================
@@ -103,14 +145,16 @@ for link in helekLinks:
 # =========================== parshiot ==================================================
 
 
+def writeDBtoJson():
+    with open("sfarimDict.json", "w") as fp:
+        json.dump(sfarim,fp) 
 
-with open("sfarimDict.json", "w") as fp:
-    json.dump(sfarim,fp) 
 
-
-with open('sfarimDict.json') as f:
-    data = json.load(f)
-
+def loadDBfromJson():
+    with open('sfarimDict.json') as f:
+        data = json.load(f)
+    return data
+sfarim = loadDBfromJson()
 
 
 
